@@ -3,7 +3,7 @@
 A production-grade local finance tracker with a dark dashboard, real-time charts, and full CRUD across all financial data.
 
 ---
-
+## 🚧 Status: Active Development
 ## ✨ Features
 
 | Section | What it does |
