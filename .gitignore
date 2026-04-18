@@ -1,0 +1,7 @@
+node_modules/
+server/finance.db
+server/finance.db-shm
+server/finance.db-wal
+client/dist/
+.env
+.DS_Store
