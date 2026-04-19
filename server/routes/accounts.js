@@ -37,7 +37,9 @@ router.get('/', (req, res) => {
     }
 
     // ── Credit utilization ──────────────────────────────────
-    const utilization = acc.credit_limit > 0
+    // Only show utilization for revolving credit
+    const isRevolving = ['credit', 'loc'].includes(acc.type);
+    const utilization = isRevolving && acc.credit_limit > 0
       ? +((Math.abs(currentBalance) / acc.credit_limit) * 100).toFixed(1)
       : null;
 
@@ -92,8 +94,10 @@ router.get('/summary', (req, res) => {
     if (isLiability) {
       totalLiabilities += Math.abs(current);
       if (Math.abs(current) > 0) totalDebt += Math.abs(current);
-      if (acc.credit_limit > 0) totalCreditLimit += acc.credit_limit;
-    } else {
+      // Only revolving credit counts toward utilization limit
+      if (['credit', 'loc'].includes(acc.type) && acc.credit_limit > 0) {
+        totalCreditLimit += acc.credit_limit;
+      }
       totalAssets += current;
     }
   }
@@ -157,9 +161,12 @@ router.get('/debt-tracker', (req, res) => {
 
   // Overall stats
   const totalDebt = debts.reduce((s, d) => s + d.balance, 0);
-  const totalLimit = debts.reduce((s, d) => s + (d.credit_limit || 0), 0);
+  // Only revolving credit counts toward utilization
+  const revolvingDebts = debts.filter(d => ['credit', 'loc'].includes(d.type));
+  const totalLimit = revolvingDebts.reduce((s, d) => s + (d.credit_limit || 0), 0);
+  const totalRevolvingBalance = revolvingDebts.reduce((s, d) => s + d.balance, 0);
   const overallUtilization = totalLimit > 0
-    ? +((totalDebt / totalLimit) * 100).toFixed(1)
+    ? +((totalRevolvingBalance / totalLimit) * 100).toFixed(1)
     : 0;
 
   res.json({
