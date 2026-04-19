@@ -29,10 +29,11 @@ function initSchema() {
     CREATE TABLE IF NOT EXISTS transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT NOT NULL,
-      type TEXT NOT NULL CHECK(type IN ('income','expense')),
-      category TEXT NOT NULL,
+      type TEXT NOT NULL CHECK(type IN ('income','expense','transfer')),
+      category TEXT NOT NULL DEFAULT '',
       subcategory TEXT DEFAULT '',
       account_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL,
+      to_account_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL,
       amount REAL NOT NULL,
       notes TEXT DEFAULT '',
       created_at TEXT DEFAULT (datetime('now'))
