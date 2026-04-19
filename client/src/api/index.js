@@ -33,6 +33,8 @@ export const api = {
   accounts: {
     list: () => request('/accounts'),
     summary: () => request('/accounts/summary'),
+    debtTracker: () => request('/accounts/debt-tracker'),
+    portfolioGrowth: (year) => request(`/accounts/portfolio-growth?year=${year}`),
     create: (data) => request('/accounts', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => request(`/accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => request(`/accounts/${id}`, { method: 'DELETE' }),
