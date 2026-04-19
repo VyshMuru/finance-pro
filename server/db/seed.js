@@ -1,3 +1,7 @@
+// ⚠️ SEED DISABLED — Real data mode
+// To re-enable for testing, remove this line:
+process.exit(0);
+
 const { getDb } = require('./database');
 
 const db = getDb();
