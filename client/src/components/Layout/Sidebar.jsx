@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { id: 'overview', label: 'Overview',  icon: LayoutDashboard, color: 'text-blue-400' },
+  { id: 'overview', label: 'Dashboard',  icon: LayoutDashboard, color: 'text-blue-400' },
   { id: 'income',   label: 'Income',    icon: TrendingUp,      color: 'text-green-400' },
   { id: 'expense',  label: 'Expense',   icon: TrendingDown,    color: 'text-red-400' },
   { id: 'accounts', label: 'Accounts',  icon: Landmark,        color: 'text-cyan-400' },

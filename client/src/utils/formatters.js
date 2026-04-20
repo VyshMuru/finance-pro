@@ -45,7 +45,7 @@ export const MONTHS = [
 
 export const YEARS = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - 3 + i);
 
-export const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'investment', 'loan', 'other'];
+export const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'investment', 'loan', 'loc', 'other'];
 
 export const TYPE_COLORS = {
   income:  '#22c55e',
@@ -53,6 +53,7 @@ export const TYPE_COLORS = {
   asset:   '#3b82f6',
   worth:   '#a855f7',
   budget:  '#f59e0b',
+  loc:     '#f97316',
 };
 
 export const CATEGORY_COLORS = [

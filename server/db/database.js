@@ -21,8 +21,12 @@ function initSchema() {
     CREATE TABLE IF NOT EXISTS accounts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      type TEXT NOT NULL CHECK(type IN ('checking','savings','credit','investment','loan','other')),
+      type TEXT NOT NULL CHECK(type IN (
+        'checking','savings','credit',
+        'investment','loan','loc','other'
+      )),
       starting_balance REAL DEFAULT 0,
+      credit_limit REAL DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))
     );
 
