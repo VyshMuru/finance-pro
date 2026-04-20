@@ -103,15 +103,20 @@ router.get('/summary', (req, res) => {
   }
 
   // ── Overall utilization — revolving only ──────────────────
-  const revolvingAccounts = accounts.filter(a => ['credit', 'loc'].includes(a.type));
+  // Use exact same logic as debt-tracker endpoint
   let totalRevolvingBalance = 0;
-  for (const acc of revolvingAccounts) {
+  for (const acc of accounts) {
+    if (!['credit', 'loc'].includes(acc.type)) continue;
+
     const current = acc.starting_balance
       - acc.total_inflows
       + acc.total_outflows
       - acc.total_transfers_in
       + acc.total_transfers_out;
-    totalRevolvingBalance += Math.abs(current);
+
+    // Only count balances > 0 (actual debt)
+    const balance = Math.abs(current);
+    if (balance > 0) totalRevolvingBalance += balance;
   }
 
   const overallUtilization = totalCreditLimit > 0
@@ -177,14 +182,21 @@ router.get('/debt-tracker', (req, res) => {
   // ── Overall stats ─────────────────────────────────────────
   const totalDebt = debts.reduce((s, d) => s + d.balance, 0);
 
-  // Only revolving credit counts toward utilization
-  const revolvingDebts = debts.filter(d => ['credit', 'loc'].includes(d.type));
-  const totalLimit = revolvingDebts.reduce((s, d) => s + (d.credit_limit || 0), 0);
-  const totalRevolvingBalance = revolvingDebts.reduce((s, d) => s + d.balance, 0);
+  // For utilization — fetch ALL revolving accounts (including zero balance)
+  // so credit limits are always included in denominator
+  const allRevolvingAccounts = db.prepare(`
+    SELECT * FROM accounts WHERE type IN ('credit', 'loc')
+  `).all();
+
+  const totalLimit = allRevolvingAccounts.reduce((s, a) => s + (a.credit_limit || 0), 0);
+  const totalRevolvingBalance = debts
+    .filter(d => ['credit', 'loc'].includes(d.type))
+    .reduce((s, d) => s + d.balance, 0);
+
   const overallUtilization = totalLimit > 0
     ? +((totalRevolvingBalance / totalLimit) * 100).toFixed(1)
     : 0;
-
+    
   res.json({
     debts,
     totalDebt: +totalDebt.toFixed(2),
