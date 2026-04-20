@@ -36,8 +36,7 @@ router.get('/', (req, res) => {
         - acc.total_transfers_out;
     }
 
-    // ── Credit utilization ──────────────────────────────────
-    // Only show utilization for revolving credit
+    // ── Only revolving credit gets utilization ──────────────
     const isRevolving = ['credit', 'loc'].includes(acc.type);
     const utilization = isRevolving && acc.credit_limit > 0
       ? +((Math.abs(currentBalance) / acc.credit_limit) * 100).toFixed(1)
@@ -94,16 +93,29 @@ router.get('/summary', (req, res) => {
     if (isLiability) {
       totalLiabilities += Math.abs(current);
       if (Math.abs(current) > 0) totalDebt += Math.abs(current);
-      // Only revolving credit counts toward utilization limit
+      // ── Only revolving credit counts toward utilization ───
       if (['credit', 'loc'].includes(acc.type) && acc.credit_limit > 0) {
         totalCreditLimit += acc.credit_limit;
       }
+    } else {
       totalAssets += current;
     }
   }
 
+  // ── Overall utilization — revolving only ──────────────────
+  const revolvingAccounts = accounts.filter(a => ['credit', 'loc'].includes(a.type));
+  let totalRevolvingBalance = 0;
+  for (const acc of revolvingAccounts) {
+    const current = acc.starting_balance
+      - acc.total_inflows
+      + acc.total_outflows
+      - acc.total_transfers_in
+      + acc.total_transfers_out;
+    totalRevolvingBalance += Math.abs(current);
+  }
+
   const overallUtilization = totalCreditLimit > 0
-    ? +((totalDebt / totalCreditLimit) * 100).toFixed(1)
+    ? +((totalRevolvingBalance / totalCreditLimit) * 100).toFixed(1)
     : 0;
 
   res.json({
@@ -141,7 +153,10 @@ router.get('/debt-tracker', (req, res) => {
       + acc.total_transfers_out;
 
     const balance = Math.abs(current);
-    const utilization = acc.credit_limit > 0
+
+    // ── Only revolving credit gets utilization ──────────────
+    const isRevolving = ['credit', 'loc'].includes(acc.type);
+    const utilization = isRevolving && acc.credit_limit > 0
       ? +((balance / acc.credit_limit) * 100).toFixed(1)
       : null;
 
@@ -159,8 +174,9 @@ router.get('/debt-tracker', (req, res) => {
   // Sort by balance descending
   .sort((a, b) => b.balance - a.balance);
 
-  // Overall stats
+  // ── Overall stats ─────────────────────────────────────────
   const totalDebt = debts.reduce((s, d) => s + d.balance, 0);
+
   // Only revolving credit counts toward utilization
   const revolvingDebts = debts.filter(d => ['credit', 'loc'].includes(d.type));
   const totalLimit = revolvingDebts.reduce((s, d) => s + (d.credit_limit || 0), 0);
@@ -182,9 +198,9 @@ router.get('/portfolio-growth', (req, res) => {
   const db = getDb();
   const { year = new Date().getFullYear() } = req.query;
 
-  // Get savings and investment accounts only
+  // Savings and investment accounts only
   const accounts = db.prepare(`
-    SELECT * FROM accounts 
+    SELECT * FROM accounts
     WHERE type IN ('savings', 'investment')
   `).all();
 
@@ -214,7 +230,7 @@ router.get('/portfolio-growth', (req, res) => {
       GROUP BY account_id, to_account_id, type
     `).all(endDate, String(year));
 
-    // Build balance map
+    // Build balance map per account
     const balMap = {};
     for (const acc of accounts) {
       balMap[acc.id] = {
@@ -241,7 +257,10 @@ router.get('/portfolio-growth', (req, res) => {
     let totalContributed = 0;
 
     for (const acc of accounts) {
-      const t = balMap[acc.id] || { income: 0, expense: 0, transfers_in: 0, transfers_out: 0 };
+      const t = balMap[acc.id] || {
+        income: 0, expense: 0,
+        transfers_in: 0, transfers_out: 0,
+      };
       const current = acc.starting_balance
         + t.income
         - t.expense
@@ -260,8 +279,12 @@ router.get('/portfolio-growth', (req, res) => {
     });
   }
 
-  // Current totals
-  const current = trend[trend.length - 1] || { portfolioValue: 0, totalContributed: 0, growth: 0 };
+  // Current totals from latest month
+  const current = trend[trend.length - 1] || {
+    portfolioValue: 0,
+    totalContributed: 0,
+    growth: 0,
+  };
 
   res.json({
     trend,
@@ -280,10 +303,12 @@ router.post('/', (req, res) => {
   const { name, type, starting_balance = 0, credit_limit = 0 } = req.body;
   if (!name || !type) return res.status(400).json({ error: 'name and type required' });
   const result = db.prepare(`
-    INSERT INTO accounts (name, type, starting_balance, credit_limit) 
+    INSERT INTO accounts (name, type, starting_balance, credit_limit)
     VALUES (?, ?, ?, ?)
   `).run(name, type, starting_balance, credit_limit);
-  res.status(201).json(db.prepare('SELECT * FROM accounts WHERE id = ?').get(result.lastInsertRowid));
+  res.status(201).json(
+    db.prepare('SELECT * FROM accounts WHERE id = ?').get(result.lastInsertRowid)
+  );
 });
 
 // ── PUT /api/accounts/:id ─────────────────────────────────────
@@ -291,7 +316,7 @@ router.put('/:id', (req, res) => {
   const db = getDb();
   const { name, type, starting_balance, credit_limit = 0 } = req.body;
   db.prepare(`
-    UPDATE accounts 
+    UPDATE accounts
     SET name=?, type=?, starting_balance=?, credit_limit=?
     WHERE id=?
   `).run(name, type, starting_balance, credit_limit, req.params.id);
