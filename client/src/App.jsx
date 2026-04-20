@@ -12,7 +12,7 @@ import Budget from './components/sections/Budget';
 import { fmt, MONTHS } from './utils/formatters';
 
 const SECTION_META = {
-  overview: { label: 'Overview',  emoji: '📊' },
+  overview: { label: 'Dashboard',  emoji: '📊' },
   income:   { label: 'Income',    emoji: '💰' },
   expense:  { label: 'Expense',   emoji: '💸' },
   accounts: { label: 'Accounts',  emoji: '🏦' },
